@@ -1,47 +1,31 @@
-import pandas as pd
-import pymysql 
 from sqlalchemy import create_engine
-import streamlit as st
+import pymysql 
+import pandas as pd
 import numpy as np
 from dtaidistance import dtw
-import altair as alt
-#import MySQLdb
-# from bokeh.plotting import figure
 
 
-#DB
-@st.cache
-def get_df():
-    #MySQL Connector using pymysql
-    pymysql.install_as_MySQLdb()
-    
-    engine = create_engine("mysql+mysqldb://admin:1234@13.124.54.4:59791/Indices")
-    conn = engine.connect()
 
-    query = '''
-            select * from Indices.kr
-    
-            '''
-    df=pd.read_sql(query ,con=conn)
-    conn.close()
-    return df
-etf_df = get_df()
+pymysql.install_as_MySQLdb()
+engine = create_engine("mysql+mysqldb://admin:1234@13.124.54.4:59791/Indices")
+conn = engine.connect()
+query = '''
+        select * from Indices.kr
+       
+        '''
+etf_df=pd.read_sql(query ,con=conn)
+
 etf_df = etf_df.set_index("Date")
 
-#df
+
 #ticker중복처리
 names = etf_df.name.unique()
 names = list(names)
-#streamlit
 
-#select symbol
-select_etf = st.multiselect('Select etf' , names , ['KODEX 200'])
-
+#일단 1개만
 
 select_df = etf_df[etf_df.name.isin(select_etf)]
 
-#display df
-st.write("*DataFrame*",select_df)
 
 #chart
 #column조정
@@ -130,14 +114,7 @@ for i in range(10):
     end_date = str(his_df.loc[len(his_df)-1 - idx_name + 60,'Date']).split()[0]
 
     line_data=pd.DataFrame(store['min_df{}'.format(i)]).rename(columns = {idx_name:str(idx_name)}).reset_index()
-    line_chart = alt.Chart(line_data).mark_line().encode(    
-    alt.X('index', title='period'),
-    alt.Y(str(idx_name), title='rtn')
-                                                    ).properties(
-    title= '{0} ~ {1}'.format(start_date,end_date)
-                                                                )
 
-    st.altair_chart(line_chart)
     
     
     buyprice = his_df.loc[len(his_df)-1 - idx_name + 60, 'Close']
@@ -147,11 +124,6 @@ for i in range(10):
 
     bar_data = pd.concat([bar_data,rtn_store['min_df{}'.format(i)]],axis=0)
 bar_data = bar_data.rename(columns = {0:'rtn'}).reset_index()
-bar_chart = alt.Chart(bar_data).mark_bar().encode(    
-alt.X('index',bin=True, title='order'),
-alt.Y('rtn')
-                                                    ).properties(
-title= '5일뒤 rtn'
-                                                                )
-st.altair_chart(bar_chart)
 
+
+conn.close()
