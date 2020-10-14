@@ -15,115 +15,96 @@ query = '''
         '''
 etf_df=pd.read_sql(query ,con=conn)
 
-etf_df = etf_df.set_index("Date")
+etf_df = etf_df.set_index("Date") #Date로 index채움
 
 
 #ticker중복처리
-names = etf_df.name.unique()
-names = list(names)
+etf_names = list(etf_df.name.unique())
 
-#일단 1개만
-
-select_df = etf_df[etf_df.name.isin(select_etf)]
-
-
-#chart
-#column조정
-_columns = etf_df.drop(columns=['name']).columns
-
-#select column
-select_column = st.selectbox('Select column',options=_columns)
-
-st.write("*{0}*  ~ {1}".format(str(select_df.index.min()).split()[0],
-                               str(select_df.index.max()).split()[0]))
-#chart생성
 chart_data = pd.DataFrame()
-
-for i in select_etf:
-    temp_df=etf_df[etf_df.name.isin([i])]
-    chart_data[i] = temp_df[select_column]
+ppp =0
+for select_etf in etf_names:
     
-#display chart
-st.line_chart(data=chart_data)
-
-
-#select history ticker
-history_etf = st.selectbox('Select ticker(show history)',options=names)
-history_etf = 'KODEX 200'
-#cal
-his_df = etf_df[etf_df.name.isin([history_etf])].reset_index().loc[:,['Date','Close']]
-is_true= his_df['Date'] > pd.to_datetime('2010-01-01')
-his_df = his_df[is_true].reset_index().drop(columns='index')
-his_df = his_df.sort_values('Date', ascending=False)
-
-
-# period만큼 재구성
-train_df = pd.DataFrame()
-idx = 0
-step = 1
-period = 60
-while True:
-    split = his_df[idx:idx+period]    
-    split = split.reset_index()    
-    if idx > len(his_df) or len(split)<period: break
-    train_df = train_df.assign(idx = split['Close'] / split.tail(1)['Close'].values  -1)
-    train_df = train_df.rename(columns = {'idx':idx})
-    idx += step
+    print(select_etf)
+    select_etf = [select_etf]
+    select_df = etf_df[etf_df.name.isin(select_etf)] #isin - list로 input
     
-train_df = train_df.T#전치
-train_np = train_df.to_numpy()
-
-ds = dtw.distance_matrix_fast(train_np, block=((0, 1), (1, len(train_np))), compact=True)
-ds_array = np.array(ds)
-
-ds_array = np.delete(ds_array,range(60),axis=0) #target 주변 삭제
-temp_value = []
-temp_index = []
-store = {}
-rtn_store = {}
-scale = period
-bar_data = pd.DataFrame()
-
-#get 10
-for i in range(10):
-
-    temp_value.append(min(ds_array))
-    temp_index.append(ds.index(temp_value[i]))
-    temp_1 = train_df.loc[temp_index[i] +1]#ds에는 target없기 때문+1
-    store['min_df{}'.format(i)] = temp_1[::-1].reset_index(drop=True)
-    
-    remove_idx = np.where(ds_array==temp_value[i])
-    remove_idx = int(remove_idx[0])
-    low_scope = int(remove_idx-scale/2)
-    high_scope = int(remove_idx+scale/2)
-    if low_scope<0:
-         ds_array[0:high_scope] = None
-
-    elif high_scope>len(ds_array):
-         ds_array[low_scope:len(ds_array)] = None
-         
-
-    else:
-         ds_array[low_scope:high_scope] = None
-         
-
-
-for i in range(10):
-    idx_name = store['min_df{}'.format(i)].name
-    start_date =str( his_df.loc[len(his_df)-1 - idx_name,'Date'] ).split()[0]
-    end_date = str(his_df.loc[len(his_df)-1 - idx_name + 60,'Date']).split()[0]
-
-    line_data=pd.DataFrame(store['min_df{}'.format(i)]).rename(columns = {idx_name:str(idx_name)}).reset_index()
-
+    history_etf = select_etf
+    #cal
+    his_df = etf_df[etf_df.name.isin(history_etf)].reset_index().loc[:,['Date','Close']]
+    his_df = his_df.sort_values('Date', ascending=False)
     
     
-    buyprice = his_df.loc[len(his_df)-1 - idx_name + 60, 'Close']
+    # period만큼 재구성
+    train_df = pd.DataFrame() #rtn df
+    train_date_df = pd.DataFrame()#date of rtn df
+    idx = 0
+    step = 1
+    period = 60
+    while True:
+        split = his_df[idx:idx+period]    
+        split = split.reset_index()    
+        if idx > len(his_df) or len(split)<period: break
+        train_df = train_df.assign(idx = split['Close'] / split.tail(1)['Close'].values  -1)
+        train_date_df = train_date_df.assign(idx = split['Date'])
+        train_df = train_df.rename(columns = {'idx':idx})
+        train_date_df = train_date_df.rename(columns = {'idx':idx})
+        idx += step
+        
+    train_df = train_df.T#전치
+    train_date_df = train_date_df.T
+    train_np = train_df.to_numpy()
     
-    five_days = his_df.loc[len(his_df)-1 - idx_name +65, 'Close']
-    rtn_store['min_df{}'.format(i)] =pd.Series( five_days/buyprice -1,index=[i])
+    ds = dtw.distance_matrix_fast(train_np, block=((0, 1), (1, len(train_np))), compact=True)
+    ds_array = np.array(ds)
+    
+    ds_array = np.delete(ds_array,range(60),axis=0) #target 주변 삭제
+    temp_value = []
+    temp_index = []
+    scale = period
 
-    bar_data = pd.concat([bar_data,rtn_store['min_df{}'.format(i)]],axis=0)
-bar_data = bar_data.rename(columns = {0:'rtn'}).reset_index()
+    rtn_data = []
+    num_of_hisdata = 5
+    rtn_after_date = 5
+    #get his data
+    for i in range(num_of_hisdata):
+        #dtw적용 value,index저장
+        temp_value.append(min(ds_array))
+        temp_index.append(ds.index(temp_value[i]))
+        #chart_data에 추가
+        temp_data = train_df.loc[temp_index[i] +1]#ds에는 target없기 때문+1
+        temp_date = train_date_df.loc[temp_index[i] +1]
+             #chartdata
+        chart_data['{0}_{1}'.format(select_etf[0],i)] = temp_data[::-1].reset_index(drop=True)
+        chart_data['{0}_{1}_date'.format(select_etf[0],i)] = temp_date[::-1].reset_index(drop=True)
+            #bar data
+        buyprice = his_df[his_df['Date'] == chart_data['{0}_{1}_date'.format(select_etf[0],i)].tail(1).values[0]].Close.values[0]
+        after_date_price=his_df.loc[his_df[his_df['Date'] == chart_data['{0}_{1}_date'.format(select_etf[0],i)].tail(1).values[0]].index.values[0] + rtn_after_date].Close
+        rtn_data.append(after_date_price / buyprice -1)
+
+        #ds_array에서 주변값 정리
+        remove_idx = np.where(ds_array==temp_value[i])
+        remove_idx = int(remove_idx[0])
+        low_scope = int(remove_idx-scale/2)
+        high_scope = int(remove_idx+scale/2)
+        
+        if low_scope<0:
+             ds_array[0:high_scope] = None
+    
+        elif high_scope>len(ds_array):
+             ds_array[low_scope:len(ds_array)] = None
+             
+    
+        else:
+             ds_array[low_scope:high_scope] = None
+    while len(rtn_data) < len(chart_data):
+        rtn_data.append(np.nan)
+    chart_data['{0}_{1}_after'.format(select_etf[0],i)] = rtn_data
+    
+    ppp+=1
+    if ppp >5:
+        break
 
 
 conn.close()
+chart_data.columns
