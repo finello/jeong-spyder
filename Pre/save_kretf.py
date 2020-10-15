@@ -28,8 +28,8 @@ for kr_symbol in kretf_symbol :
     idx +=1
     
 etf_df = pd.concat(temp_df)
-
-
+etf_df = etf_df.reset_index()
+etf_df.reset_index().Date
 
 # DB 연결
 
