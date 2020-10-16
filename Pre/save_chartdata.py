@@ -25,6 +25,7 @@ chart_data = pd.DataFrame()
 ppp =0
 
 for select_etf in etf_names:
+    # select_etf = 'KODEX 200'
     print(select_etf)
     select_etf = [select_etf]
     select_df = etf_df[etf_df.name.isin(select_etf)] #isin - list로 input
@@ -50,7 +51,7 @@ for select_etf in etf_names:
         train_df = train_df.rename(columns = {'idx':idx})
         train_date_df = train_date_df.rename(columns = {'idx':idx})
         idx += step
-        
+
     train_df = train_df.T#전치
     train_date_df = train_date_df.T
     train_np = train_df.to_numpy()
@@ -69,7 +70,7 @@ for select_etf in etf_names:
     #get his data
     for i in range(num_of_hisdata):
         #dtw적용 value,index저장
-
+        # i = 0
         temp_value.append(min(ds_array))
         temp_index.append(ds.index(temp_value[i]))
         #chart_data에 추가
@@ -111,12 +112,13 @@ chart_data = chart_data.reset_index().rename(columns = {'index':'name'})
 
 temp_name = chart_data.name.values.tolist()
 chart_data = chart_data.drop(columns ='name')
+
 #Timestamp to datetime
 check =0
 date_idx =1
 
-# for i in range(len(etf_names)):
-for i in range(10):
+
+for i in range(10):# for i in range(5xlen(etf_names)):
 
     chart_data.loc[date_idx] = pd.to_datetime(chart_data.loc[date_idx]).apply(lambda x: x.date())
     check +=1
@@ -125,7 +127,7 @@ for i in range(10):
         date_idx +=3
         continue
     date_idx+=2
-    
+
 # columns변경
 for i in range(60):
     chart_data = chart_data.rename(columns = {i:'x{}'.format(i)})
@@ -134,7 +136,8 @@ chart_data.to_sql('krchartdata', if_exists='replace',con=conn)
 
 # chart_data.loc[1] = pd.to_datetime(chart_data.loc[1])
 # chart_data.loc[5] = pd.to_datetime(chart_data.loc[5]).apply(lambda x: x.date())
-
 conn.close()
 
-    
+selected = 'KODEX 200'
+i = 1
+chart_data[chart_data.name.isin(['{0}_{1}'.format(selected,i)])].drop(columns ='name').values.flatten().tolist()
