@@ -6,5 +6,5 @@ save_non_project_files = False
 
 [main]
 version = 0.2.0
-recent_files = ['test.py', 'streamlit_kretf.py', 'save_kretf.py', 'streamlit_worldetf.py', 'streamlit_test.py', '000.py']
+recent_files = ['streamlit_kretf.py', 'save_kretf.py', 'streamlit_worldetf.py', 'save_affinity.py', 'save_chartdata.py', 'save_info.py', 'correlation.py']
 

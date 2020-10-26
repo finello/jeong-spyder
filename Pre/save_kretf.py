@@ -5,14 +5,17 @@ from sqlalchemy import create_engine
 # MySQL Connector using pymysql
 pymysql.install_as_MySQLdb()
 import MySQLdb
-from datetime import datetime
+from datetime import datetime ,timedelta
 import numpy as np
 
 
- 
+
 nowDate = datetime.now().strftime('%Y-%m-%d')
 start_date = '2010-01-01'
-end_date = '2020-09-16'
+end_date = nowDate
+
+
+base_date = datetime.now() - timedelta(days=1800)
 
 
 kretf_name = fdr.EtfListing('KR').Name.values
@@ -29,11 +32,20 @@ for kr_symbol in kretf_symbol :
     
 etf_df = pd.concat(temp_df)
 etf_df = etf_df.reset_index()
-etf_df.reset_index().Date
 
+
+
+#check amount of data
+for etfname in kretf_name:
+    
+    if etf_df[etf_df.name == etfname].Date.min() > base_date:
+        etf_df = etf_df[etf_df.name != etfname]
+
+#datetime edit
+# etf_df.Date = etf_df.Date.dt.date
 # DB 연결
 
-project_str = 'mysql+mysqldb://admin:1234@13.125.20.104:57836/Indices'
+project_str = 'mysql+mysqldb://admin:1234@13.124.54.4:59791/Indices'
 
 
 # 프로젝트 DB 저장

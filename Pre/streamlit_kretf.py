@@ -155,3 +155,5 @@ title= '5일뒤 rtn'
                                                                 )
 st.altair_chart(bar_chart)
 
+bardata = ['0.124125', '1.2521','2.215556','3.135135','4.125164']
+bardata[:] = [round(float(x),4) for x in bardata]

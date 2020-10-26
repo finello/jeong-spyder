@@ -17,7 +17,7 @@ min_etf = 3  # 그룹군 안에 포함된 ETF 최소개수
 # MySQL Connector using pymysql
 pymysql.install_as_MySQLdb()
 project_str = 'mysql+mysqldb://admin:1234@13.124.54.4:59791/Indices'
-#today = datetime.now()
+# today = datetime.now()
 today = datetime(2020,10,7)
 start = today-timedelta(days=period)
 
@@ -29,16 +29,19 @@ query = '''
         '''.format(start)
 
 etf_df=pd.read_sql( query,con=project_db)
-project_db.close()
+
 
 etf_df['Date'] = etf_df['Date'].dt.date
+
 df= pd.pivot_table(etf_df, values='Change', index=['name'],
                     columns=['Date'], aggfunc='mean')
+
 df = df.dropna()
 # 일별 수익률 계산
 
-X = np.array(df.values)
+X = np.array(df.values) 
 clustering = AffinityPropagation().fit(X)
+
 label = clustering.labels_
 # clustering.predict()
 # clustering.cluster_centers_
@@ -49,7 +52,7 @@ df_g = df_g.sort_values('count', ascending = False)
 df_g = df_g[df_g['count']>min_etf]
 
 selected_group = df_g.index.to_list()
-
+# print(selected_group)
 df_selected = df[df['label'].isin(selected_group)]
 df_selected = df_selected.filter(['name', 'label'])
 
@@ -62,3 +65,9 @@ recent_df = recent_df.filter(['name', 'Trading Value'])
 # 
 full_df = pd.merge(df, recent_df, how='left', on='name')
 final_df = full_df.loc[full_df.groupby('label')['Trading Value'].idxmax(), ['name', 'label', 'Trading Value']]
+full_df.groupby('label')
+final_df.to_sql('clusteringkr', if_exists='replace',con=project_db)
+
+project_db.close()
+final_df.name.tolist()
+final_df.to_csv('final_etf.csv',encoding='cp949')
