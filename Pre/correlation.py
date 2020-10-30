@@ -58,7 +58,10 @@ corr_df = df.corr()
 input_etf = 'KODEX 200'
 corr = corr_df.loc[:,corr_df.columns==input_etf]
 high_corr = corr.sort_values(input_etf, ascending=False)[1:6]
+round(high_corr,3)
+print(high_corr.loc['KODEX 레버리지','KODEX 200'])
 low_corr = corr.sort_values(input_etf)[:5]
+
 # NetworkX Plot
 # edges = corr_df.stack()
 # edges = pd.DataFrame(edges)
